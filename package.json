@@ -1,8 +1,8 @@
 {
   "name": "auto-fb-group",
   "version": "1.0.0",
-  "description": "Automate Facebook Group Request Handling",
-  "main": "index.js",
+  "description": "Automate FB group requests ",
+  "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -10,10 +10,13 @@
     "type": "git",
     "url": "git+https://github.com/neerajp99/auto_fb_group.git"
   },
-  "author": "",
+  "author": "neerajp99",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/neerajp99/auto_fb_group/issues"
   },
-  "homepage": "https://github.com/neerajp99/auto_fb_group#readme"
+  "homepage": "https://github.com/neerajp99/auto_fb_group#readme",
+  "dependencies": {
+    "puppeteer": "^8.0.0"
+  }
 }
