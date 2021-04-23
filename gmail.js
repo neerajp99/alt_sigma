@@ -1,10 +1,13 @@
-/*
+/** 
  * Using Gmail API for utilities around sending emails, extracting information et al.
  */
 const fs = require('fs');
 const readline = require('readline');
 const path = require('path');
-const {google} = require('googleapis');
+const {google, oauth2_v1} = require('googleapis');
+const { resolve } = require('path');
+const moment = require('moment');
+moment().format(); 
 
 
 // If modifying these scopes, delete token.json.
@@ -13,6 +16,7 @@ const SCOPES = ['https://mail.google.com/'];
 // created automatically when the authorization flow completes for the first
 // time.
 const TOKEN_PATH = 'tokens.json';
+
 
 /**
  * Create an OAuth2 client with the given credentials, and then execute the
@@ -34,8 +38,49 @@ async function authorize(credentials, token_path) {
       const token = fs.readFileSync(
         token_path || path.resolve(__dirname, TOKEN_PATH)
       );
-      oAuth2Client.setCredentials(JSON.parse(token));
-      return oAuth2Client;
+      if (JSON.parse(token).expiry_date <= (new Date()).getTime()) {
+        const refresh_token = await oAuth2Client.refreshToken(
+          oAuth2Client.credentials.refresh_token
+        );
+        if (refresh_token && refresh_token.tokens) {
+          // Initialize new token as the available token only 
+          const new_token = JSON.parse(fs.readFileSync(
+            token_path || path.resolve(__dirname, TOKEN_PATH)
+          ));
+          
+          // Check if access tokens are available in refresh token
+          if (refresh_token.tokens.access_token) {
+            new_token.access_token = refresh_token.tokens.access_token;
+          }
+
+          // Check if refresh tokens are available in refresh token
+          if (refresh_token.tokens.refresh_token) {
+            new_token.refresh_token = refresh_token.tokens.refresh_token
+          }
+
+          // Check if expiry date are available in refresh token
+          if (refresh_token.tokens.expiry_date) {
+            new_token.expiry_date = refresh_token.tokens.expiry_date;
+          }
+
+          // Write to the tokens.json file
+          fs.writeFileSync(
+            token_path || path.resolve(__dirname, TOKEN_PATH),
+            JSON.stringify(new_token)
+          )
+        } else {
+            // Throw Error
+            throw new Error(
+              `Refresh access token failed! Response is: ${JSON.stringify(
+                refresh_token
+              )}`
+            );
+        }
+      } else {
+        // Update and return the new OAuth2Client
+        oAuth2Client.setCredentials(JSON.parse(token));
+        return oAuth2Client;
+      }
     } catch(error) {
       return await generate_new_token(oAuth2Client, token_path);
     }
@@ -79,8 +124,44 @@ async function generate_new_token(oAuth2Client, token_path) {
   })
 }
 
+/**
+ * List the labels in the users account
+ * @param {google.auth.oAuth2} auth An authorized OAuth2 client.
+ * @return {Array} labels Labels of an user.
+ */
+async function listLabels(auth) {
+  const gmail = google.gmail({
+    version: 'v1',
+    auth 
+  });
+  try {
+    const labels = await new Promise((resolve, reject) => {
+      gmail.users.labels.list(
+        {
+          userId: "me"
+        },
+        (error, response) => {
+          if (error) {
+            reject(error);
+          } else {
+            const labels = response.data.labels;
+            resolve(labels);
+          }
+        }
+      )
+    })
+    return labels;
+  } catch (error) {
+    console.log('API returned an error: ' + error);
+    throw error;
+  }
+}
+
 (async () => {
   const content = fs.readFileSync("credentials.json");
   const oAuth2Client = await authorize(JSON.parse(content), "tokens.json");
   const gmail_client = google.gmail({ version: "v1", oAuth2Client });
+  listLabels(oAuth2Client);
 })();
+
+
