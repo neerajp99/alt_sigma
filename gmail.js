@@ -157,11 +157,126 @@ async function listLabels(auth) {
   }
 }
 
+/**
+ * Fetch the messages with a specific query 
+ * @param {String} user_id User's email address. The special value "me"
+ * can be used to indicate the authenticated user. 
+ * @param {String} query String used to filter the messages listed 
+ */
+async function fetch_messages(auth, query, label_id) {
+  const gmail = google.gmail({
+    version: 'v1',
+    auth 
+  });
+  
+  const messages = await new Promise((resolve, reject) => {
+    gmail.users.messages.list(
+      {
+        userId: 'me',
+        q: query, 
+        auth: auth,
+        labelsIds: label_id
+      },
+      async function(error, response){
+        if (error) {
+          reject(error);
+        } else {
+          let result = response.data.messages || [];
+          let { nextPageToken } = response.data;
+          let count = 0;
+
+          while (count < 1) {
+            console.log("Check 1010");
+            const values = await new Promise((resolve, reject) => {
+              gmail.users.messages.list(
+                {
+                  userId: "me",
+                  q: query, 
+                  auth: auth, 
+                  labelsIds: label_id,
+                  pageToken: nextPageToken
+                },
+                function (err, res){
+                  if (err) {
+                    reject(err);
+                  } else {
+                    resolve(res);
+                  }
+                }
+              );
+            });
+            result = result.concat(values.data.messages);
+            nextPageToken = values.data.nextPageToken;
+            count += 1;
+          }
+          resolve(result);
+        }
+      }
+    );
+  });
+  let final_result = messages || [];
+  return final_result;
+}
+
+async function list_messages(oauth2Client, query, labelIds) {
+  const gmail = google.gmail({version: 'v1', oauth2Client});
+  const messages = await new Promise((resolve, reject) => {
+
+    gmail.users.messages.list(
+      {
+        userId: "me",
+        q: query,
+        auth: oauth2Client,
+        labelIds: labelIds
+      },
+      async function(err, res) {
+        if (err) {
+          reject(err);
+        } else {
+          let result = res.data.messages || [];
+          let { nextPageToken } = res.data;
+          let count = 0
+          while (count < 1) {
+            console.log('sahi hai xD')
+            const resp = await new Promise((resolve, reject) => {
+              gmail.users.messages.list(
+                {
+                  userId: "me",
+                  q: query,
+                  auth: oauth2Client,
+                  labelIds: labelIds,
+                  pageToken: nextPageToken
+                },
+                function(err, res) {
+                  if (err) {
+                    reject(err);
+                  } else {
+                    resolve(res);
+                  }
+                }
+              );
+            });
+            result = result.concat(resp.data.messages);
+            nextPageToken = resp.data.nextPageToken;
+            count += 1
+          }
+          resolve(result);
+        }
+      }
+    );
+  });
+  let result = messages || [];
+  return result;
+}
+
+
 (async () => {
   const content = fs.readFileSync("credentials.json");
   const oAuth2Client = await authorize(JSON.parse(content), "tokens.json");
   const gmail_client = google.gmail({ version: "v1", oAuth2Client });
-  listLabels(oAuth2Client);
+  // listLabels(oAuth2Client);
+  const values = await list_messages(oAuth2Client, "is:unread subject:xyz", "INBOX");
+  console.log(values);
 })();
 
 
