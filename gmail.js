@@ -145,6 +145,7 @@ async function listLabels(auth) {
             reject(error);
           } else {
             const labels = response.data.labels;
+            console.log('Labels', labels)
             resolve(labels);
           }
         }
@@ -163,63 +164,11 @@ async function listLabels(auth) {
  * can be used to indicate the authenticated user. 
  * @param {String} query String used to filter the messages listed 
  */
-async function fetch_messages(auth, query, label_id) {
+async function fetch_messages(oauth2Client, query, labelIds) {
   const gmail = google.gmail({
-    version: 'v1',
-    auth 
+    version: 'v1', 
+    oauth2Client
   });
-  
-  const messages = await new Promise((resolve, reject) => {
-    gmail.users.messages.list(
-      {
-        userId: 'me',
-        q: query, 
-        auth: auth,
-        labelsIds: label_id
-      },
-      async function(error, response){
-        if (error) {
-          reject(error);
-        } else {
-          let result = response.data.messages || [];
-          let { nextPageToken } = response.data;
-          let count = 0;
-
-          while (count < 1) {
-            console.log("Check 1010");
-            const values = await new Promise((resolve, reject) => {
-              gmail.users.messages.list(
-                {
-                  userId: "me",
-                  q: query, 
-                  auth: auth, 
-                  labelsIds: label_id,
-                  pageToken: nextPageToken
-                },
-                function (err, res){
-                  if (err) {
-                    reject(err);
-                  } else {
-                    resolve(res);
-                  }
-                }
-              );
-            });
-            result = result.concat(values.data.messages);
-            nextPageToken = values.data.nextPageToken;
-            count += 1;
-          }
-          resolve(result);
-        }
-      }
-    );
-  });
-  let final_result = messages || [];
-  return final_result;
-}
-
-async function list_messages(oauth2Client, query, labelIds) {
-  const gmail = google.gmail({version: 'v1', oauth2Client});
   const messages = await new Promise((resolve, reject) => {
 
     gmail.users.messages.list(
@@ -269,14 +218,67 @@ async function list_messages(oauth2Client, query, labelIds) {
   return result;
 }
 
+/**
+ * Fetch the contents of the emails from the list of emails from fetch_messages 
+ * @param {google.auth.oAuth2} oAuth2Client An authorized OAuth2 client.
+ * @param {String} query String used to filter the messages listed 
+ */
+async function fetch_message_content(oAuth2Client, query = "") {
+  try {
+    const labels = await listLabels(oAuth2Client)
+    const label_id = [labels.find(label => label.name === "INBOX").id]
+    const gmail = google.gmail ({
+      version: 'v1',
+      oAuth2Client
+    })
+    const messages = await fetch_messages(
+      oAuth2Client, 
+      query,
+      label_id
+    )
+
+    let promises = []
+
+    for (let message of messages) {
+      promises.push(
+        new Promise((resolve, reject) => {
+          gmail.users.messages.get(
+            {
+              auth: oAuth2Client,
+              userId: 'me',
+              id: message.id,
+              format: 'full'
+            },
+            (error, response) => {
+              if (error) {
+                reject(error)
+              } else {
+                resolve(response)
+              }
+            } 
+          )
+        })
+      )
+    }
+    const results = await Promise.all(promises)
+    return results.map(res => res.data)
+  }
+  catch(error) {
+    console.log("Error while fetching email content: ", error)
+    throw error
+  }
+}
+
 
 (async () => {
   const content = fs.readFileSync("credentials.json");
   const oAuth2Client = await authorize(JSON.parse(content), "tokens.json");
   const gmail_client = google.gmail({ version: "v1", oAuth2Client });
-  // listLabels(oAuth2Client);
-  const values = await list_messages(oAuth2Client, "is:unread subject:xyz", "INBOX");
-  console.log(values);
+  listLabels(oAuth2Client);
+  const values = await fetch_messages(oAuth2Client, "is:unread subject:xyz", "INBOX");
+  console.log('VALUES', values)
+  const final = await fetch_message_content(oAuth2Client, "is:unread subject:xyz")
+  console.log("FINAL", final);
 })();
 
 
