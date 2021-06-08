@@ -6,8 +6,6 @@ const readline = require('readline');
 const path = require('path');
 const {google, oauth2_v1} = require('googleapis');
 const { resolve } = require('path');
-const moment = require('moment');
-moment().format(); 
 
 
 // If modifying these scopes, delete token.json.
@@ -16,7 +14,6 @@ const SCOPES = ['https://mail.google.com/'];
 // created automatically when the authorization flow completes for the first
 // time.
 const TOKEN_PATH = 'tokens.json';
-
 
 /**
  * Create an OAuth2 client with the given credentials, and then execute the
@@ -269,16 +266,22 @@ async function fetch_message_content(oAuth2Client, query = "") {
   }
 }
 
+module.exports = {
+  authorize,
+  get_recent_email
+};
+
 
 (async () => {
   const content = fs.readFileSync("credentials.json");
   const oAuth2Client = await authorize(JSON.parse(content), "tokens.json");
   const gmail_client = google.gmail({ version: "v1", oAuth2Client });
   listLabels(oAuth2Client);
-  const values = await fetch_messages(oAuth2Client, "is:unread subject:xyz", "INBOX");
-  console.log('VALUES', values)
-  const final = await fetch_message_content(oAuth2Client, "is:unread subject:xyz")
-  console.log("FINAL", final);
+  // const values = await fetch_messages(oAuth2Client, "is:unread subject:xyz", "INBOX");
+  // console.log('VALUES', values)
+  const final = await fetch_message_content(oAuth2Client, "is:unread subject:Security+Alert")
+  console.log("FINAL", final[0]);
+  console.log("FINAL", final[0]['payload']['headers'][final[0]['payload']['headers'].length - 3]['value']);
 })();
 
 

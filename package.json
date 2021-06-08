@@ -17,6 +17,10 @@
   },
   "homepage": "https://github.com/neerajp99/auto_fb_group#readme",
   "dependencies": {
+    "dotenv": "^8.2.0",
+    "googleapis": "^39.2.0",
+    "moment": "^2.29.1",
+    "nodemailer": "^6.6.1",
     "puppeteer": "^8.0.0"
   }
 }
