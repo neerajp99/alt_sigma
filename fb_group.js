@@ -57,9 +57,7 @@ async function check_login_status(page) {
         return false;
     }
     
-}/* Automate Log In on Facebook using Puppeteer*/
-const puppeteer = require('puppeteer');
-const config = require('./config');
+}
 
 /*
  * Method to add a timeout delay
@@ -119,6 +117,29 @@ async function check_login_status(page) {
 }
 
 /**
+ * Method to scroll to the bottom of the page
+ * @param {Object} page Instance of the browser 
+ */
+async function auto_scroll(page) {
+    await page.evaluate(async () => {
+        await new Promise((resolve, reject) => {
+            let height = 0;
+            let distance = 100;
+            let timer = setInterval(() => {
+                let scrollHeight = document.body.scrollHeight;
+                window.scrollBy(0, distance);
+                height += distance;
+
+                if (height >= scrollHeight) {
+                    clearInterval(timer);
+                    resolve();
+                }
+            }, 100);
+        })
+    });
+}
+
+/**
  * Method to fetch details of all requests
  * @param {Object} page Instance of the browser 
  * @returns {Array} all_requests List of all request objects
@@ -132,6 +153,10 @@ async function get_requests(page, user_email, user_password) {
         visible: true,
         timeout: 1000 
     })
+
+    // Scroll to the bottom of the page to make sure all requests are fulfilled
+    await auto_scroll(page);
+
     let all_requests = [];
 
     // Get the element which contains all the list
@@ -150,20 +175,26 @@ async function get_requests(page, user_email, user_password) {
         // Get the Decline button 
         let decline_button = await elements.$x(".//span[text()[contains(., 'Decline')]]");
         
+        let question 
+        let answer
+
         // Check for empty answers by the user 
         try {
-            let question = await elements.$x(".//*[contains(text(), 'Send an email from')]");
-            let answer_target = await elements.$x(("./following-sibling::*"))
-            let answer = await page.evaluate(el => el.innerHTML, answer_target);
+            let [questions] = await elements.$x(".//*[contains(text(), 'Are you smart?')]")
+            question = await page.evaluate(el => el.innerText, questions);
+            let [answer_targets]  = await questions.$x(("./following-sibling::*"))
+            // const children = await page.evaluateHandle(e => e.children, answer_targets);
+            // answer = await page.evaluate(el => el.innerText, answer_target);
+            answer = await page.evaluate(el => el.innerText, answer_targets)
         } catch(error) {
             // If the field is empty, make the answer as null
-            let answer = null
+            answer = null
+            question = null
         }
 
         // Return an object of the details back to process 
         const result = {
             "name": user_name_text,
-            "question": question,
             "answer": answer,
             "approve_button": approve_button,
             "decline_button": decline_button, 
@@ -181,6 +212,7 @@ async function handle_requests(page, user_email, user_password) {
     } 
     // Fetch all the pending requests 
     const allRequest = await get_requests(page);
+    console.log('ALLLLL', allRequest)
 }
 
 /*
@@ -195,22 +227,5 @@ module.exports.automate_fb = () => {
         // Close the browser
         await handle_requests(page);
         // await browser.close();
-    })();
-}
-
-/*
- * Script to manage the Facebook group join requests automatically 
- */
-module.exports.automate_fb = () => {
-    (async () => {
-        const browser = await puppeteer.launch(config.launchOptions);
-        const page = await browser.newPage();
-        await page.setViewport({width: 1366, height: 768});
-        await page.setUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36');
- 
-        // Close the browser
-        // const login_status = await check_login_status(page);
-        // await browser.close();
-        console.log(typeof(page))
     })();
 }
