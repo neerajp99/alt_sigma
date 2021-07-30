@@ -212,20 +212,21 @@ async function handle_requests(page, user_email, user_password) {
     } 
     // Fetch all the pending requests 
     const allRequest = await get_requests(page);
-    console.log('ALLLLL', allRequest)
+    return allRequest
 }
 
 /*
  * Script to manage the Facebook group join requests automatically 
  */
-module.exports.automate_fb = () => {
-    (async () => {
-        const browser = await puppeteer.launch(config.launchOptions);
-        const page = await browser.newPage();
-        await page.setViewport({width: 1366, height: 768});
-        await page.setUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36');
+async function automate_fb() {
+    const browser = await puppeteer.launch(config.launchOptions);
+    const page = await browser.newPage();
+    await page.setViewport({width: 1366, height: 768});
+    await page.setUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36');
+    await login(page, '#email', '#password' )
         // Close the browser
-        await handle_requests(page);
-        // await browser.close();
-    })();
+    const requests = await handle_requests(page);
+    return requests
 }
+
+module.exports.automate_fb = automate_fb
