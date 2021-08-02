@@ -7,40 +7,43 @@ const path = require('path');
 const {google, oauth2_v1} = require('googleapis');
 const { resolve } = require('path');
 const nodemailer = require('nodemailer');
-const {authorize} = require("./gmail.js");
+const { authorize } = require("./gmail.js");
+let emailContent = fs.readFileSync("email.json")
+emailContent = JSON.parse(emailContent)
 
 /**
  * Send an email to the user with a specific message
  * @param {string} message Message string
  * @return {Object} emailData Sent email data
  */
-async function send_email(message) {
+async function send_email(message, toEmail) {
     try {
+        
         const content = fs.readFileSync("credentials.json");
         const {client_secret, client_id, redirect_uris, refresh_token} = JSON.parse(content).installed;
-        const oAuth2Client = new google.auth.OAuth2(
-            client_id, 
-            client_secret, 
-            redirect_uris[0]
-        );
-        oAuth2Client.setCredentials({refresh_token: refresh_token})
+        const token_path = 'tokens.json';
+        const oAuth2Client = await authorize(JSON.parse(content), token_path);
+        const token = JSON.parse(fs.readFileSync(token_path))
+        oAuth2Client.setCredentials({
+            refresh_token: token.refresh_token
+        })
         const accessToken = await oAuth2Client.getAccessToken()
         const transport = nodemailer.createTransport({
             service: 'gmail',
             auth: {
                 type: 'OAuth2',
-                user: 'SENDER EMAIL ADDRESS',
+                user: emailContent.from,
                 clientId: client_id,
                 clientSecret: client_secret,
-                refreshToken: refresh_token,
+                refreshToken: token.refresh_token,
                 accessToken
             }
         })
 
         const mailOptions =  {
-            from: "SENDER EMAIL ADDRESS",
-            to: "RECEIVER EMAIL ADDRESS",
-            subject: "SUBJECT",
+            from: emailContent.from,
+            to: toEmail,
+            subject: emailContent.subject,
             text: "Hello from the other side!s",
             html: "<h1>Hello from the other side </h1>",
         }
@@ -52,8 +55,7 @@ async function send_email(message) {
         return error
     }
 }
-send_email()
-    .then(result => console.log("Email Sent", result))
-    .catch(error => {
-        console.log('Error', error)
-    })
+
+module.exports = {
+    send_email
+}
