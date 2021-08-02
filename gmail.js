@@ -9,7 +9,11 @@ const { resolve } = require('path');
 
 
 // If modifying these scopes, delete token.json.
-const SCOPES = ['https://mail.google.com/'];
+const SCOPES = [
+  'https://mail.google.com/',
+  'https://spreadsheets.google.com/feeds',
+  'https://www.googleapis.com/auth/drive'
+];
 // The file tokens.json stores the user's access and refresh tokens, and is
 // created automatically when the authorization flow completes for the first
 // time.
@@ -29,16 +33,18 @@ async function authorize(credentials, token_path) {
         client_secret, 
         redirect_uris[0]
     );
-
     // Check if we have previously stored a token.
     try {
       const token = fs.readFileSync(
         token_path || path.resolve(__dirname, TOKEN_PATH)
       );
       if (JSON.parse(token).expiry_date <= (new Date()).getTime()) {
+        oAuth2Client.setCredentials(JSON.parse(token));
+        
         const refresh_token = await oAuth2Client.refreshToken(
           oAuth2Client.credentials.refresh_token
         );
+
         if (refresh_token && refresh_token.tokens) {
           // Initialize new token as the available token only 
           const new_token = JSON.parse(fs.readFileSync(
@@ -54,7 +60,7 @@ async function authorize(credentials, token_path) {
           if (refresh_token.tokens.refresh_token) {
             new_token.refresh_token = refresh_token.tokens.refresh_token
           }
-
+          
           // Check if expiry date are available in refresh token
           if (refresh_token.tokens.expiry_date) {
             new_token.expiry_date = refresh_token.tokens.expiry_date;
@@ -65,6 +71,9 @@ async function authorize(credentials, token_path) {
             token_path || path.resolve(__dirname, TOKEN_PATH),
             JSON.stringify(new_token)
           )
+          oAuth2Client.setCredentials(JSON.parse(token));
+          return oAuth2Client;
+
         } else {
             // Throw Error
             throw new Error(
@@ -142,7 +151,7 @@ async function listLabels(auth) {
             reject(error);
           } else {
             const labels = response.data.labels;
-            console.log('Labels', labels)
+            // console.log('Labels', labels)
             resolve(labels);
           }
         }
@@ -182,8 +191,8 @@ async function fetch_messages(oauth2Client, query, labelIds) {
           let result = res.data.messages || [];
           let { nextPageToken } = res.data;
           let count = 0
-          while (count < 1) {
-            console.log('sahi hai xD')
+          while (nextPageToken) {
+            // console.log('sahi hai xD')
             const resp = await new Promise((resolve, reject) => {
               gmail.users.messages.list(
                 {
@@ -235,30 +244,35 @@ async function fetch_message_content(oAuth2Client, query = "") {
     )
 
     let promises = []
-
-    for (let message of messages) {
-      promises.push(
-        new Promise((resolve, reject) => {
-          gmail.users.messages.get(
-            {
-              auth: oAuth2Client,
-              userId: 'me',
-              id: message.id,
-              format: 'full'
-            },
-            (error, response) => {
-              if (error) {
-                reject(error)
-              } else {
-                resolve(response)
-              }
-            } 
-          )
-        })
-      )
+    if (messages.length > 0) {
+      for (let message of messages) {
+        promises.push(
+          new Promise((resolve, reject) => {
+            gmail.users.messages.get(
+              {
+                auth: oAuth2Client,
+                userId: 'me',
+                id: message.id,
+                format: 'full'
+              },
+              (error, response) => {
+                if (error) {
+                  reject(error)
+                } else {
+                  resolve(response)
+                }
+              } 
+            )
+          })
+        )
+      }
+      const results = await Promise.all(promises)
+      return results.map(res => res.data)
     }
-    const results = await Promise.all(promises)
-    return results.map(res => res.data)
+    else {
+      return []
+    }
+    
   }
   catch(error) {
     console.log("Error while fetching email content: ", error)
@@ -266,22 +280,42 @@ async function fetch_message_content(oAuth2Client, query = "") {
   }
 }
 
-module.exports = {
-  authorize,
-  get_recent_email
-};
-
-
-(async () => {
+/**
+ * Method to automate the process of fetching unread email for a specific title
+ * @returns {Array} A list of email messages
+ */
+async function automate_gmail() {
   const content = fs.readFileSync("credentials.json");
   const oAuth2Client = await authorize(JSON.parse(content), "tokens.json");
   const gmail_client = google.gmail({ version: "v1", oAuth2Client });
   listLabels(oAuth2Client);
   // const values = await fetch_messages(oAuth2Client, "is:unread subject:xyz", "INBOX");
   // console.log('VALUES', values)
-  const final = await fetch_message_content(oAuth2Client, "is:unread subject:Security+Alert")
-  console.log("FINAL", final[0]);
-  console.log("FINAL", final[0]['payload']['headers'][final[0]['payload']['headers'].length - 3]['value']);
-})();
+  const final = await fetch_message_content(oAuth2Client, "is:unread subject:Updates+to+our+Privacy+Policy")
+  // console.log("FINAL", final);
+  console.log(final[0])
+  let results = final[0]['payload']['headers'].filter(function (entry) { return entry.name === 'From'; });
+  // console.log("FINAL", final[0]['payload']['headers'][final[0]['payload']['headers'].length - 3]['value']);
+  console.log('RESULTS', results[0]['value'])
+  return final
+}
+
+module.exports = {
+  authorize,
+  automate_gmail
+};
+
+
+// (async () => {
+//   const content = fs.readFileSync("credentials.json");
+//   const oAuth2Client = await authorize(JSON.parse(content), "tokens.json");
+//   const gmail_client = google.gmail({ version: "v1", oAuth2Client });
+//   listLabels(oAuth2Client);
+//   // const values = await fetch_messages(oAuth2Client, "is:unread subject:xyz", "INBOX");
+//   // console.log('VALUES', values)
+//   const final = await fetch_message_content(oAuth2Client, "is:unread subject:Verify+your+email+for+Munich-Data.org")
+//   console.log("FINAL", final);
+//   // console.log("FINAL", final[0]['payload']['headers'][final[0]['payload']['headers'].length - 3]['value']);
+// })();
 
 
