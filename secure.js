@@ -55,3 +55,9 @@ async function decrypt_text(value) {
         return error;
     }
 }
+
+module.exports = {
+    getRandom,
+    encrypt_text,
+    decrypt_text
+}
