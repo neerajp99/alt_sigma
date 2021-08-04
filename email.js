@@ -16,7 +16,7 @@ emailContent = JSON.parse(emailContent)
  * @param {string} message Message string
  * @return {Object} emailData Sent email data
  */
-async function send_email(message, toEmail) {
+async function send_email(message, html, toEmail) {
     try {
         
         const content = fs.readFileSync("credentials.json");
@@ -44,8 +44,8 @@ async function send_email(message, toEmail) {
             from: emailContent.from,
             to: toEmail,
             subject: emailContent.subject,
-            text: "Hello from the other side!s",
-            html: "<h1>Hello from the other side </h1>",
+            text: message,
+            html: html,
         }
 
         const result = await transport.sendMail(mailOptions)

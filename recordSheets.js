@@ -9,7 +9,10 @@ const {google} = require('googleapis');
 */
 async function getSheetsData(auth) {
   return new Promise((resolve, reject) => {
-    const sheets = google.sheets({version: 'v4', auth});
+    const sheets = google.sheets({
+      version: 'v4', 
+      auth
+    });
     sheets.spreadsheets.values.get({
       spreadsheetId: '1B8upVnuawfWfcqgFlTIhkYv7yDpJw3IT2xRUs1i9zYg',
       range: 'Data!A2:E',
@@ -26,6 +29,7 @@ async function getSheetsData(auth) {
           // rows.map((row) => {
           //   console.log(`${row[0]}, ${row[1]}`);
           // });
+          console.log('Data', res)
           resolve(rows)
         } else {
           console.log('No data found.');
@@ -46,7 +50,10 @@ async function getSheetsData(auth) {
  */
 async function writeToSheets(auth, email, name) {
   return new Promise((resolve, reject) => {
-    const sheets = google.sheets({ version: 'v4', auth });
+    const sheets = google.sheets({ 
+      version: 'v4',
+      auth 
+    });
     let values = [
         [
             email,
@@ -73,7 +80,49 @@ async function writeToSheets(auth, email, name) {
   })
 }
 
+/**
+ * 
+ * @param {google.auth.OAuth2} oAuth2Client The OAuth2 client to get token for
+ * @param {number} start Starting index of the rows
+ * @param {number} end End Index of the rows
+ * @returns {Object} Response object for successful process, else error
+ */
+async function deleteFromSheets(auth, start, end) {
+  return new Promise ((resolve, reject) => {
+    const sheets = google.sheets({
+      version: 'v4',
+      auth
+    })
+    sheets.spreadsheets.batchUpdate({
+      spreadsheetId: '1B8upVnuawfWfcqgFlTIhkYv7yDpJw3IT2xRUs1i9zYg',
+      resource: {
+        "requests": [
+          {
+            "deleteDimension": {
+              "range": {
+                "dimension": "ROWS",
+                "startIndex": start,
+                "endIndex": end
+              }
+            }
+          }
+        ]
+      }
+    }, (error, result) => {
+      if (error) {
+        console.log('Error', error)
+        reject(error)
+      } else {
+        console.log('Row (s) deleted successfully!')
+        resolve(result)
+      }
+    })
+  })
+}
+
+
 module.exports = {
   getSheetsData,
-  writeToSheets
+  writeToSheets,
+  deleteFromSheets
 }
