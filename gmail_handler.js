@@ -1,8 +1,8 @@
 const { google, oauth2_v1 } = require('googleapis');
-const { authorize } = require('./gmail')
+const { authorize, automate_gmail } = require('./gmail')
 const fs = require('fs');
 const { encrypt_text, decrypt_text } = require('./secure')
-const { getSheetsData, writeToSheets } = require('./recordSheets');
+const { getSheetsData, writeToSheets, deleteFromSheets } = require('./recordSheets');
 const { sheets } = require('googleapis/build/src/apis/sheets');
 const { send_email } = require('./email')
 
@@ -42,7 +42,7 @@ const EmailReadHelper = async (auth, messageID, removeLabelsID) => {
 };
 
 /**
- * 
+ * Method to mark email as read
  * @param {google.auth.oAuth2} auth An authorized OAuth2 client.
  * @param {*} messageID Message ID of the specific email
  */
@@ -83,6 +83,11 @@ const getSheetsContent = async (oAuth2Client) => {
     return sheetsContent
 }
 
+/**
+ * Method to add data to Google sheets
+ * @param {String} email Email address of the user
+ * @param {String} name Name of the user
+ */
 const saveToSheets = async (email, name) => {
     const content = fs.readFileSync("credentials.json");
     const token_path = 'tokens.json';
@@ -91,6 +96,9 @@ const saveToSheets = async (email, name) => {
     if (sheetsContent.length > 0) {
         const str_sheets = JSON.stringify(sheetsContent)
         if (str_sheets.includes(email)) {
+            const message = "A user already requested access from this email address."
+            const html = "<h2>A user already requested access from this email address.</h2>"
+            // await sendEmail(message, html, email)
             console.log('Already there') // Send email for the same, duplicate entry
         } else {
             await writeToSheets(oAuth2Client, email, name)
@@ -102,11 +110,40 @@ const saveToSheets = async (email, name) => {
 
 /**
  * Method to send an email
+ * @param {String} message Email content of the email
+ * @param {String} html Email html of the email
+ * @param {String} toEmail Email address
  */
-const sendEmail = async () => {
-    await send_email("aa", 'email@mail.com')
+const sendEmail = async (message, html, toEmail) => {
+    await send_email(message, html, toEmail)
 }
 
 /**
- * Method to initialize the scheduling jobs 
+ * Method to delete specific rows from the Google sheets
+ * @param {number} start Starting index of the rows
+ * @param {number} end End index of the rows 
  */
+const deleteRowFromSheets = async (start, end) => {
+    const content = fs.readFileSync("credentials.json");
+    const token_path = 'tokens.json';
+    const oAuth2Client = await authorize(JSON.parse(content), token_path);
+    await deleteFromSheets(oAuth2Client, start, end)
+}
+
+
+const gmailProcess = async() => {
+    const final = await automate_gmail()
+    // let results = final[0]['payload']['headers'].filter(function (entry) { return entry.name === 'From'; });
+    // console.log("FINAL", final[0]['payload']['headers'][final[0]['payload']['headers'].length - 3]['value']);
+    // console.log('RESULTS', results[0]['value'])
+}
+
+gmailProcess()
+module.exports = {
+    markEmailAsRead,
+    encryptCode,
+    decryptCode,
+    getSheetsContent,
+    saveToSheets,
+    deleteRowFromSheets
+}

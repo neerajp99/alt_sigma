@@ -289,14 +289,7 @@ async function automate_gmail() {
   const oAuth2Client = await authorize(JSON.parse(content), "tokens.json");
   const gmail_client = google.gmail({ version: "v1", oAuth2Client });
   listLabels(oAuth2Client);
-  // const values = await fetch_messages(oAuth2Client, "is:unread subject:xyz", "INBOX");
-  // console.log('VALUES', values)
   const final = await fetch_message_content(oAuth2Client, "is:unread subject:Updates+to+our+Privacy+Policy")
-  // console.log("FINAL", final);
-  console.log(final[0])
-  let results = final[0]['payload']['headers'].filter(function (entry) { return entry.name === 'From'; });
-  // console.log("FINAL", final[0]['payload']['headers'][final[0]['payload']['headers'].length - 3]['value']);
-  console.log('RESULTS', results[0]['value'])
   return final
 }
 
@@ -304,18 +297,5 @@ module.exports = {
   authorize,
   automate_gmail
 };
-
-
-// (async () => {
-//   const content = fs.readFileSync("credentials.json");
-//   const oAuth2Client = await authorize(JSON.parse(content), "tokens.json");
-//   const gmail_client = google.gmail({ version: "v1", oAuth2Client });
-//   listLabels(oAuth2Client);
-//   // const values = await fetch_messages(oAuth2Client, "is:unread subject:xyz", "INBOX");
-//   // console.log('VALUES', values)
-//   const final = await fetch_message_content(oAuth2Client, "is:unread subject:Verify+your+email+for+Munich-Data.org")
-//   console.log("FINAL", final);
-//   // console.log("FINAL", final[0]['payload']['headers'][final[0]['payload']['headers'].length - 3]['value']);
-// })();
 
 
