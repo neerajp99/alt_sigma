@@ -46,7 +46,7 @@ const EmailReadHelper = async (auth, messageID, removeLabelsID) => {
  * @param {google.auth.oAuth2} auth An authorized OAuth2 client.
  * @param {*} messageID Message ID of the specific email
  */
-const markEmailAsRead = async (auth, messageID) => {
+const markEmailAsRead = async (messageID) => {
     const content = fs.readFileSync("credentials.json");
     const token_path = 'tokens.json';
     const oAuth2Client = await authorize(JSON.parse(content), token_path);
@@ -98,13 +98,20 @@ const saveToSheets = async (email, name) => {
         if (str_sheets.includes(email)) {
             const message = "A user already requested access from this email address."
             const html = "<h2>A user already requested access from this email address.</h2>"
-            // await sendEmail(message, html, email)
-            console.log('Already there') // Send email for the same, duplicate entry
+            await sendEmail(message, html, email)
         } else {
+            const encrypted_text = await encryptCode(email)
+            const message = `Here is your security answer for the Facebook group: ${encrypted_text}`
+            const html = `<h2>Here is your security answer for the Facebook group: ${encrypted_text}</h2>`
             await writeToSheets(oAuth2Client, email, name)
+            await sendEmail(message, html, email)
         }
     } else {
+        const encrypted_text = await encryptCode(email)
+        const message = `Here is your security answer for the Facebook group: ${encrypted_text}`
+        const html = `<h2>Here is your security answer for the Facebook group: ${encrypted_text}</h2>`
         await writeToSheets(oAuth2Client, email, name)
+        await sendEmail(message, html, email)
     }
 }
 
@@ -130,15 +137,50 @@ const deleteRowFromSheets = async (start, end) => {
     await deleteFromSheets(oAuth2Client, start, end)
 }
 
-
-const gmailProcess = async() => {
-    const final = await automate_gmail()
-    // let results = final[0]['payload']['headers'].filter(function (entry) { return entry.name === 'From'; });
-    // console.log("FINAL", final[0]['payload']['headers'][final[0]['payload']['headers'].length - 3]['value']);
-    // console.log('RESULTS', results[0]['value'])
+/**
+ * Method to fetch the user's name and email address
+ * @param {String} content String received from gmailProcess with mixed name and email address
+ * @returns User's name and email address string array
+ */
+const getNameAndEmail = async(content) => {
+    if (content.includes("<") || content.includes(">")) {
+        let finalValues = []
+        let temp = content.split("<")
+        let name = temp[0]
+        let email = temp[1]
+        finalValues.push(name.slice(0, name.length - 1), email.slice(0, email.length - 1))
+        return finalValues
+    } 
+    else if (!content.includes("<") || !content.includes(">")) {
+        return ["", content]
+    } else {
+        return []
+    }
 }
 
-gmailProcess()
+/**
+ * Method to orchestrate the entire gmail workflow
+ */
+const gmailProcess = async() => {
+    const final = await automate_gmail()
+    await Promise.all(final.map(async (value, index) => {
+        let results = final[index]['payload']['headers'].filter(function (entry) { return entry.name === 'From' });
+        let result = results[0]['value']
+        const userCredentials = await getNameAndEmail(result)
+        const messageID = value.id
+        if (userCredentials.length > 0) {
+            const name = userCredentials[0]
+            const email = userCredentials[1]
+            console.log('EMAIL', email)
+            await saveToSheets(email, name)
+            await markEmailAsRead(messageID)
+        }   
+    }))
+    // let results = final[0]['payload']['headers'].filter(function (entry) { return entry.name === 'From'; });
+    // console.log("FINAL", final[0]['payload']['headers'][final[0]['payload']['headers'].length - 3]['value']);
+    // console.log('RESULTS', final.length)
+}
+
 module.exports = {
     markEmailAsRead,
     encryptCode,
