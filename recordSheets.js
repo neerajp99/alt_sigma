@@ -15,14 +15,14 @@ async function getSheetsData(auth) {
     });
     sheets.spreadsheets.values.get({
       spreadsheetId: '1B8upVnuawfWfcqgFlTIhkYv7yDpJw3IT2xRUs1i9zYg',
-      range: 'Data!A2:E',
+      range: 'Data',
     }, 
     (err, res) => {
       if (err) {
         console.log('The API returned an error: ' + err);
         reject(err)
       }
-
+      console.log('RESPONSE', res)
       if (Object.keys(res.data).length > 2) {
         const rows = res.data.values;
         if (rows.length) {
@@ -65,7 +65,7 @@ async function writeToSheets(auth, email, name) {
     };
     sheets.spreadsheets.values.append({
         spreadsheetId: '1B8upVnuawfWfcqgFlTIhkYv7yDpJw3IT2xRUs1i9zYg',
-        range: 'Data!A1',
+        range: 'Data',
         valueInputOption: 'RAW',
         resource: resource,
     }, (error, result) => {
