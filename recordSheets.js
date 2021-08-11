@@ -22,14 +22,14 @@ async function getSheetsData(auth) {
         console.log('The API returned an error: ' + err);
         reject(err)
       }
-      console.log('RESPONSE', res)
+      // console.log('RESPONSE', res)
       if (Object.keys(res.data).length > 2) {
         const rows = res.data.values;
         if (rows.length) {
           // rows.map((row) => {
           //   console.log(`${row[0]}, ${row[1]}`);
           // });
-          console.log('Data', res)
+          // console.log('Data', res)
           resolve(rows)
         } else {
           console.log('No data found.');
@@ -63,6 +63,7 @@ async function writeToSheets(auth, email, name) {
     const resource = {
         values,
     };
+    
     sheets.spreadsheets.values.append({
         spreadsheetId: '1B8upVnuawfWfcqgFlTIhkYv7yDpJw3IT2xRUs1i9zYg',
         range: 'Data',
@@ -73,6 +74,7 @@ async function writeToSheets(auth, email, name) {
             console.log("Error", error);
             reject(error)
         } else {
+            console.log('EMAIL', email)
             console.log('%d cells updated on range: %s', result.data.updates.updatedCells, result.data.updates.updatedRange);
             resolve(true)
         }

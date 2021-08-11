@@ -41,6 +41,15 @@ const EmailReadHelper = async (auth, messageID, removeLabelsID) => {
     });
 };
 
+/*
+ * Method to add a timeout delay
+ */
+function delay(time) {
+    return new Promise(function(resolve) { 
+        setTimeout(resolve, time)
+    });
+}
+
 /**
  * Method to mark email as read
  * @param {google.auth.oAuth2} auth An authorized OAuth2 client.
@@ -98,20 +107,20 @@ const saveToSheets = async (email, name) => {
         if (str_sheets.includes(email)) {
             const message = "A user already requested access from this email address."
             const html = "<h2>A user already requested access from this email address.</h2>"
-            await sendEmail(message, html, email)
+            // await sendEmail(message, html, email)
         } else {
             const encrypted_text = await encryptCode(email)
             const message = `Here is your security answer for the Facebook group: ${encrypted_text}`
             const html = `<h2>Here is your security answer for the Facebook group: ${encrypted_text}</h2>`
-            await writeToSheets(oAuth2Client, email, name)
-            await sendEmail(message, html, email)
+            const write = await writeToSheets(oAuth2Client, email, name)
+            // await sendEmail(message, html, email)
         }
     } else {
         const encrypted_text = await encryptCode(email)
         const message = `Here is your security answer for the Facebook group: ${encrypted_text}`
         const html = `<h2>Here is your security answer for the Facebook group: ${encrypted_text}</h2>`
-        await writeToSheets(oAuth2Client, email, name)
-        await sendEmail(message, html, email)
+        const write = await writeToSheets(oAuth2Client, email, name)
+        // await sendEmail(message, html, email)
     }
 }
 
@@ -162,8 +171,10 @@ const getNameAndEmail = async(content) => {
  * Method to orchestrate the entire gmail workflow
  */
 const gmailProcess = async() => {
+
     const final = await automate_gmail()
-    await Promise.all(final.map(async (value, index) => {
+    final.map(async (value, index) => {
+        delay(2000)
         let results = final[index]['payload']['headers'].filter(function (entry) { return entry.name === 'From' });
         let result = results[0]['value']
         const userCredentials = await getNameAndEmail(result)
@@ -171,16 +182,20 @@ const gmailProcess = async() => {
         if (userCredentials.length > 0) {
             const name = userCredentials[0]
             const email = userCredentials[1]
-            console.log('EMAIL', email)
             await saveToSheets(email, name)
             await markEmailAsRead(messageID)
+            delay(2000)
         }   
-    }))
+    })
     // let results = final[0]['payload']['headers'].filter(function (entry) { return entry.name === 'From'; });
     // console.log("FINAL", final[0]['payload']['headers'][final[0]['payload']['headers'].length - 3]['value']);
     // console.log('RESULTS', final.length)
+    // final.map((value) => {
+    //     let results = value['payload']['headers'].filter(function (entry) { return entry.name === 'From' });
+    //     console.log('RES', results)
+    // })
 }
-
+gmailProcess()
 module.exports = {
     markEmailAsRead,
     encryptCode,
