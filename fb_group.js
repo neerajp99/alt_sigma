@@ -1,6 +1,10 @@
 /* Automate Log In on Facebook using Puppeteer*/
 const puppeteer = require('puppeteer');
 const config = require('./config');
+const { automate_gmail } = require('./gmail');
+const { decryptCode, getSheetsContent, updateSheetRow } = require('./gmail_handler')
+const fs = require('fs');
+const { authorize } = require('./gmail')
 
 /*
  * Method to add a timeout delay
@@ -13,7 +17,7 @@ function delay(time) {
 
 /**
  * Log into the user's Facebook account
- * @param {Object} page Intance of the browser 
+ * @param {Object} page Instance of the browser 
  * @param {String} user_email User's email address
  * @param {String} user_password User's password
  */
@@ -171,9 +175,9 @@ async function get_requests(page, user_email, user_password) {
         // let fb_link = await page.evaluate(el => el.getAttribute('href'), user_name)
         let user_name_text = await page.evaluate(el => el.textContent, user_name);
         // Get the approve request button 
-        let approve_button = await elements.$x(".//span[text()[contains(., 'Approve')]]");
+        let [approve_button] = await elements.$x(".//span[text()[contains(., 'Approve')]]");
         // Get the Decline button 
-        let decline_button = await elements.$x(".//span[text()[contains(., 'Decline')]]");
+        let [decline_button] = await elements.$x(".//span[text()[contains(., 'Decline')]]");
         
         let question 
         let answer
@@ -224,9 +228,36 @@ async function automate_fb() {
     await page.setViewport({width: 1366, height: 768});
     await page.setUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36');
     await login(page, '#email', '#password' )
-        // Close the browser
+
+    // Handle the requests here 
     const requests = await handle_requests(page);
+    const content = fs.readFileSync("credentials.json");
+    const token_path = 'tokens.json';
+    const oAuth2Client = await authorize(JSON.parse(content), token_path);
+    const sheetsContent = await getSheetsContent(oAuth2Client)  
+    for (let i = 0 ; i < 1 ; i++) {
+        const name = requests[i].name
+        const answer = requests[i].answer 
+        const approve = requests[i].approve_button
+        const decline = requests[i].decline_button
+        const decryptedCode = await decryptCode('0daf4862d901eba001f901235a5337f0')
+        const sheetsData = await getSheetsContent(oAuth2Client)
+        if (sheetsData.some(data => data[0] === decryptedCode)) {
+            if (parseInt(sheetsData.filter(arr => arr[0] === decryptedCode)[0][2]) === 0) {
+                // Approve the request and update the sheets 
+                await approve.evaluate((selector) => selector.click())
+                await updateSheetRow(decryptedCode)
+            } else {
+                // Decline the request 
+                await decline.evaluate((selector) => selector.click())
+            }
+        } else {
+            await decline.evaluate((selector) => selector.click())
+        }
+    }
+
     return requests
 }
+automate_fb()
 
 module.exports.automate_fb = automate_fb
