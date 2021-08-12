@@ -28,7 +28,7 @@ async function getSheetsData(auth) {
           // rows.map((row) => {
           //   console.log(`${row[0]}, ${row[1]}`);
           // });
-          console.log('Data', res)
+          // console.log('Data', res)
           resolve(rows)
         } else {
           console.log('No data found.');
@@ -130,6 +130,7 @@ async function deleteFromSheets(auth, start, end) {
  */
 async function updateStatus(auth, email) {
   const rows = await getSheetsData(auth)
+  console.log(rows.includes("service@lenskart.in"))
   return new Promise((resolve, reject) => {
     const sheets = google.sheets({
             version: 'v4',

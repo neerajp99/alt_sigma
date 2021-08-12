@@ -74,10 +74,10 @@ const encryptCode = async (email) => {
 
 /**
  * 
- * @param {String} encrypted_string Answer string submitted by a user
+ * @param {String} encrypt_text Answer string submitted by a user
  * @returns Decrypted string for the encrypted text
  */
-const decryptCode = async (encrypted_string) => {
+const decryptCode = async (encrypt_text) => {
     const decrypted_email = await decrypt_text(encrypt_text)
     return decrypted_email
 }
