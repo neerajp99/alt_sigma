@@ -74,7 +74,7 @@ async function writeToSheets(auth, email, name) {
             console.log("Error", error);
             reject(error)
         } else {
-            console.log('EMAIL', email)
+            // console.log('EMAIL', email)
             console.log('%d cells updated on range: %s', result.data.updates.updatedCells, result.data.updates.updatedRange);
             resolve(true)
         }

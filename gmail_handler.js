@@ -107,20 +107,32 @@ const saveToSheets = async (email, name) => {
         if (str_sheets.includes(email)) {
             const message = "A user already requested access from this email address."
             const html = "<h2>A user already requested access from this email address.</h2>"
-            // await sendEmail(message, html, email)
+            await sendEmail(message, html, email)
         } else {
-            const encrypted_text = await encryptCode(email)
-            const message = `Here is your security answer for the Facebook group: ${encrypted_text}`
-            const html = `<h2>Here is your security answer for the Facebook group: ${encrypted_text}</h2>`
-            const write = await writeToSheets(oAuth2Client, email, name)
-            // await sendEmail(message, html, email)
+            await encryptCode(email)
+                .then(encrypted_text => {
+                    const message = `Here is your security answer for the Facebook group: ${encrypted_text}`
+                    const html = `<h2>Here is your security answer for the Facebook group: ${encrypted_text}</h2>`
+                    const write = writeToSheets(oAuth2Client, email, name)
+                    await sendEmail(message, html, email)
+                })
+                .catch(error => {
+                    console.log('Error')
+                })
+            
+            
         }
     } else {
-        const encrypted_text = await encryptCode(email)
-        const message = `Here is your security answer for the Facebook group: ${encrypted_text}`
-        const html = `<h2>Here is your security answer for the Facebook group: ${encrypted_text}</h2>`
-        const write = await writeToSheets(oAuth2Client, email, name)
-        // await sendEmail(message, html, email)
+        await encryptCode(email)
+                .then(encrypted_text => {
+                    const message = `Here is your security answer for the Facebook group: ${encrypted_text}`
+                    const html = `<h2>Here is your security answer for the Facebook group: ${encrypted_text}</h2>`
+                    const write = writeToSheets(oAuth2Client, email, name)
+                    await sendEmail(message, html, email)
+                })
+                .catch(error => {
+                    console.log('Error')
+                })
     }
 }
 
@@ -171,22 +183,22 @@ const getNameAndEmail = async(content) => {
  * Method to orchestrate the entire gmail workflow
  */
 const gmailProcess = async() => {
-
     const final = await automate_gmail()
-    final.map(async (value, index) => {
-        delay(2000)
+    for (let index=0 ; index < final.length ; index++) {
+        await delay(1000)
         let results = final[index]['payload']['headers'].filter(function (entry) { return entry.name === 'From' });
         let result = results[0]['value']
         const userCredentials = await getNameAndEmail(result)
-        const messageID = value.id
+        const messageID = final[index].id
         if (userCredentials.length > 0) {
             const name = userCredentials[0]
             const email = userCredentials[1]
             await saveToSheets(email, name)
             await markEmailAsRead(messageID)
-            delay(2000)
-        }   
-    })
+        }  
+    }
+    // final.map((value, index) => {
+    // })
     // let results = final[0]['payload']['headers'].filter(function (entry) { return entry.name === 'From'; });
     // console.log("FINAL", final[0]['payload']['headers'][final[0]['payload']['headers'].length - 3]['value']);
     // console.log('RESULTS', final.length)
@@ -195,12 +207,12 @@ const gmailProcess = async() => {
     //     console.log('RES', results)
     // })
 }
-gmailProcess()
 module.exports = {
     markEmailAsRead,
     encryptCode,
     decryptCode,
     getSheetsContent,
     saveToSheets,
-    deleteRowFromSheets
+    deleteRowFromSheets,
+    gmailProcess
 }
