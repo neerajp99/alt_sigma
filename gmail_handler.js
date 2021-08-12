@@ -2,7 +2,7 @@ const { google, oauth2_v1 } = require('googleapis');
 const { authorize, automate_gmail } = require('./gmail')
 const fs = require('fs');
 const { encrypt_text, decrypt_text } = require('./secure')
-const { getSheetsData, writeToSheets, deleteFromSheets } = require('./recordSheets');
+const { getSheetsData, writeToSheets, deleteFromSheets, updateStatus } = require('./recordSheets');
 const { sheets } = require('googleapis/build/src/apis/sheets');
 const { send_email } = require('./email')
 
@@ -107,14 +107,14 @@ const saveToSheets = async (email, name) => {
         if (str_sheets.includes(email)) {
             const message = "A user already requested access from this email address."
             const html = "<h2>A user already requested access from this email address.</h2>"
-            await sendEmail(message, html, email)
+            // await sendEmail(message, html, email)
         } else {
             await encryptCode(email)
                 .then(encrypted_text => {
                     const message = `Here is your security answer for the Facebook group: ${encrypted_text}`
                     const html = `<h2>Here is your security answer for the Facebook group: ${encrypted_text}</h2>`
                     const write = writeToSheets(oAuth2Client, email, name)
-                    await sendEmail(message, html, email)
+                    // await sendEmail(message, html, email)
                 })
                 .catch(error => {
                     console.log('Error')
@@ -128,7 +128,7 @@ const saveToSheets = async (email, name) => {
                     const message = `Here is your security answer for the Facebook group: ${encrypted_text}`
                     const html = `<h2>Here is your security answer for the Facebook group: ${encrypted_text}</h2>`
                     const write = writeToSheets(oAuth2Client, email, name)
-                    await sendEmail(message, html, email)
+                    // await sendEmail(message, html, email)
                 })
                 .catch(error => {
                     console.log('Error')
@@ -180,6 +180,17 @@ const getNameAndEmail = async(content) => {
 }
 
 /**
+ * Helper method to update the specific row in the Sheets using email as the key
+ * @param {String} email key to search and update a specific row
+ */
+const updateSheetRow = async(email) => {
+    const content = fs.readFileSync("credentials.json");
+    const token_path = 'tokens.json';
+    const oAuth2Client = await authorize(JSON.parse(content), token_path);
+    await updateStatus(oAuth2Client, email)
+}
+
+/**
  * Method to orchestrate the entire gmail workflow
  */
 const gmailProcess = async() => {
@@ -202,11 +213,8 @@ const gmailProcess = async() => {
     // let results = final[0]['payload']['headers'].filter(function (entry) { return entry.name === 'From'; });
     // console.log("FINAL", final[0]['payload']['headers'][final[0]['payload']['headers'].length - 3]['value']);
     // console.log('RESULTS', final.length)
-    // final.map((value) => {
-    //     let results = value['payload']['headers'].filter(function (entry) { return entry.name === 'From' });
-    //     console.log('RES', results)
-    // })
 }
+
 module.exports = {
     markEmailAsRead,
     encryptCode,
@@ -214,5 +222,6 @@ module.exports = {
     getSheetsContent,
     saveToSheets,
     deleteRowFromSheets,
-    gmailProcess
+    gmailProcess,
+    updateSheetRow
 }
