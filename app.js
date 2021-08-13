@@ -1,35 +1,43 @@
 const config = require('./config');
-const {automate_fb} = require('./fb_group')
-const {automate_gmail} = require('./gmail')
+const { automate_fb } = require('./fb_group')
+const { automate_gmail } = require('./gmail')
+const { gmailProcess } = require('./gmail_handler')
+const express = require('express')
+const cron = require("node-cron")
+
+const app = express()
 
 async function fetchRequests() {
     const result = await automate_fb()
-    console.log(result);
     return result
 }
 
 async function fetchEmails() {
-    const emails = await automate_gmail()
-    // console.log('EMAILS', emails)
-    return emails
+    const emailStatus = gmailProcess()
+    return emailStatus
 }
 
-// fetchRequests()
-//     .then(result => {
-//     console.log('REEEE', result)
-//     console.log('ACHSAAA')
-//     })
-//     .catch(error => {
-//         console.log('Error', error)
-//     })
-
-fetchEmails()
+cron.schedule('* */6 * * *', function() {
+    console.log('Automating your facebook group and emails every 6 hours now...');
+    fetchEmails()
     .then(result => {
-        // console.log('CHECCCC', result)
-        console.log('achsa')
+        fetchRequests()
+            .then(status => {
+                console.log('Session done!!')
+            })
+            .catch(error => {
+                console.log('Error: ', error)
+            })
     })
     .catch(err => {
         console.log('ERROR', err)
     })
+});
+
+app.listen(3000)
+
+
+
+
 
 

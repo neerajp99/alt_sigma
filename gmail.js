@@ -289,7 +289,10 @@ async function automate_gmail() {
   const oAuth2Client = await authorize(JSON.parse(content), "tokens.json");
   const gmail_client = google.gmail({ version: "v1", oAuth2Client });
   listLabels(oAuth2Client);
-  const final = await fetch_message_content(oAuth2Client, "is:unread subject:pizza")
+  const user_content = fs.readFileSync("config.json");
+  const {search_query} = JSON.parse(user_content).user_config;
+  let searchQuery = search_query.split(" ").join("+")
+  const final = await fetch_message_content(oAuth2Client, `is:unread subject:${searchQuery}`)
   return final
 }
 

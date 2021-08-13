@@ -230,7 +230,10 @@ async function automate_fb() {
     const page = await browser.newPage();
     await page.setViewport({width: 1366, height: 768});
     await page.setUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36');
-    await login(page, '#email', '#password' )
+    const content = fs.readFileSync("credentials.json");
+    const user_content = fs.readFileSync("config.json");
+    const {fb_email, fb_password} = JSON.parse(user_content).user_config;
+    await login(page, fb_email, fb_password)
     try {
         // Handle the requests here 
         const requests = await handle_requests(page);
