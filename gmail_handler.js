@@ -195,7 +195,7 @@ const updateSheetRow = async(email) => {
  */
 const gmailProcess = async() => {
     const final = await automate_gmail()
-    for (let index=0 ; index < final.length ; index++) {
+    for (let index = 0 ; index < final.length ; index++) {
         await delay(1000)
         let results = final[index]['payload']['headers'].filter(function (entry) { return entry.name === 'From' });
         let result = results[0]['value']
@@ -208,6 +208,7 @@ const gmailProcess = async() => {
             await markEmailAsRead(messageID)
         }  
     }
+    return true
     // final.map((value, index) => {
     // })
     // let results = final[0]['payload']['headers'].filter(function (entry) { return entry.name === 'From'; });

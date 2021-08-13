@@ -209,6 +209,9 @@ async function get_requests(page, user_email, user_password) {
     return all_requests;
 }
 
+/**
+ * Helper method to handle all requests
+ */
 async function handle_requests(page, user_email, user_password) {
     // Check if the user is logged in 
     if (await !check_login_status(page)) {
@@ -228,36 +231,42 @@ async function automate_fb() {
     await page.setViewport({width: 1366, height: 768});
     await page.setUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36');
     await login(page, '#email', '#password' )
-
-    // Handle the requests here 
-    const requests = await handle_requests(page);
-    const content = fs.readFileSync("credentials.json");
-    const token_path = 'tokens.json';
-    const oAuth2Client = await authorize(JSON.parse(content), token_path);
-    const sheetsContent = await getSheetsContent(oAuth2Client)  
-    for (let i = 0 ; i < 1 ; i++) {
-        const name = requests[i].name
-        const answer = requests[i].answer 
-        const approve = requests[i].approve_button
-        const decline = requests[i].decline_button
-        const decryptedCode = await decryptCode('0daf4862d901eba001f901235a5337f0')
-        const sheetsData = await getSheetsContent(oAuth2Client)
-        if (sheetsData.some(data => data[0] === decryptedCode)) {
-            if (parseInt(sheetsData.filter(arr => arr[0] === decryptedCode)[0][2]) === 0) {
-                // Approve the request and update the sheets 
-                await approve.evaluate((selector) => selector.click())
-                await updateSheetRow(decryptedCode)
+    try {
+        // Handle the requests here 
+        const requests = await handle_requests(page);
+        const content = fs.readFileSync("credentials.json");
+        const token_path = 'tokens.json';
+        const oAuth2Client = await authorize(JSON.parse(content), token_path);
+        const sheetsContent = await getSheetsContent(oAuth2Client)  
+        for (let i = 0 ; i < requests.length ; i++) {
+            const name = requests[i].name
+            const answer = requests[i].answer || "efbff19c7e7711f607972b19fcd8e91573dc4d87df2c85251gb828c91d7d1217"
+            const approve = requests[i].approve_button
+            const decline = requests[i].decline_button
+            const decryptedCode = await decryptCode(answer)
+            const sheetsData = await getSheetsContent(oAuth2Client)
+            if (sheetsData.some(data => data[0] === decryptedCode)) {
+                if (parseInt(sheetsData.filter(arr => arr[0] === decryptedCode)[0][2]) === 0) {
+                    // Approve the request and update the sheets 
+                    await approve.evaluate((selector) => selector.click())
+                    await updateSheetRow(decryptedCode)
+                } else {
+                    // Decline the request 
+                    await decline.evaluate((selector) => selector.click())
+                }
             } else {
-                // Decline the request 
                 await decline.evaluate((selector) => selector.click())
             }
-        } else {
-            await decline.evaluate((selector) => selector.click())
         }
+        await browser.close();
+        return true
+    
+    } catch (error) {
+        return false
     }
 
-    return requests
+    
 }
-automate_fb()
-
-module.exports.automate_fb = automate_fb
+module.exports = {
+    automate_fb
+}

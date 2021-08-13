@@ -18,7 +18,6 @@ emailContent = JSON.parse(emailContent)
  */
 async function send_email(message, html, toEmail) {
     try {
-        
         const content = fs.readFileSync("credentials.json");
         const {client_secret, client_id, redirect_uris, refresh_token} = JSON.parse(content).installed;
         const token_path = 'tokens.json';
