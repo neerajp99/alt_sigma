@@ -209,11 +209,6 @@ const gmailProcess = async() => {
         }  
     }
     return true
-    // final.map((value, index) => {
-    // })
-    // let results = final[0]['payload']['headers'].filter(function (entry) { return entry.name === 'From'; });
-    // console.log("FINAL", final[0]['payload']['headers'][final[0]['payload']['headers'].length - 3]['value']);
-    // console.log('RESULTS', final.length)
 }
 
 module.exports = {

@@ -35,9 +35,3 @@ cron.schedule('* */6 * * *', function() {
 });
 
 app.listen(3000)
-
-
-
-
-
-

@@ -16,34 +16,6 @@ function delay(time) {
 }
 
 /**
- * Log into the user's Facebook account
- * @param {Object} page Instance of the browser 
- * @param {String} user_email User's email address
- * @param {String} user_password User's password
- */
-async function login(page, user_email, user_password) {
-    await page.goto("https://www.facebook.com/login");
-    // Login using email address and password 
-    await page.waitForXPath('//*[@id="loginbutton"]')
-    await delay(2000);
-    // Find Login fields and add the values to the login and password field
-    await page.type('#email', user_email, {delay: 100});
-    await page.type('#pass', user_password, {delay: 100});
-    // Wait for 1 second before logging in 
-    await delay(1000);
-    // Click the login button
-    await page.click("#loginbutton");
-    console.log("Logged In!");
-    // Wait for navigation 
-    await page.waitForNavigation();
-    // Take a screenshot for reference
-    await page.screenshot({
-        path: 'loggedInnn-facebook.png'
-    });
-    delay(2000);
-}
-
-/**
  * Check whether the user is logged in or not 
  * @param {Object} page Intance of the browser
  * @returns {Boolean} bool A boolean value for the presence of the xpath
@@ -78,7 +50,7 @@ async function delay(time) {
  * @param {String} user_email User's email address
  * @param {String} user_password User's password
  */
-async function login(page, user_email, user_password) {
+async function login(page, user_email, user_password, fb_group_link) {
     await page.goto("https://www.facebook.com/login");
     // Login using email address and password 
     await page.waitForXPath('//*[@id="loginbutton"]')
@@ -98,7 +70,7 @@ async function login(page, user_email, user_password) {
         path: 'loggedInnn-facebook.png'
     });
     // Load the requests page of the group
-    await page.goto('https://www.facebook.com/groups/455333082392289/requests');
+    await page.goto(fb_group_link);
     await delay(2000);
 }
 
@@ -232,8 +204,8 @@ async function automate_fb() {
     await page.setUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36');
     const content = fs.readFileSync("credentials.json");
     const user_content = fs.readFileSync("config.json");
-    const {fb_email, fb_password} = JSON.parse(user_content).user_config;
-    await login(page, fb_email, fb_password)
+    const {fb_email, fb_password, fb_group_link} = JSON.parse(user_content).user_config;
+    await login(page, fb_email, fb_password, fb_group_link)
     try {
         // Handle the requests here 
         const requests = await handle_requests(page);
@@ -267,8 +239,6 @@ async function automate_fb() {
     } catch (error) {
         return false
     }
-
-    
 }
 module.exports = {
     automate_fb
